@@ -152,6 +152,7 @@ class PySWMM(object):
             raise SWMMException(errcode, self._error_message(errcode))
 
         if errcode != 0 and errcode > 103:
+            print errcode
             warnings.warn(self._error_message(errcode))
 
     def swmmExec(self, inpfile=None, rptfile=None, binfile=None):
@@ -1521,6 +1522,117 @@ class PySWMM(object):
         index = self.getObjectIDIndex(tka.ObjectType.NODE.value, ID)
         q = ctypes.c_double(stage)
         errcode = self.SWMMlibobj.swmm_setOutfallStage(index, q)
+        self._error_check(errcode)
+
+    ######################
+    # coupling functions #
+    ######################
+
+    def setNodeOpening(self, ID, opening_index, opening_type, opening_area,
+                       opening_length, coeff_orifice, coeff_freeweir,
+                       coeff_subweir):
+        """
+        Set a node opening for coupling with an overland model.
+        """
+        node_index = self.getObjectIDIndex(tka.ObjectType.NODE.value, ID)
+        idx = ctypes.c_int(opening_index)
+        oType = ctypes.c_int(opening_type)
+        A = ctypes.c_double(opening_area)
+        l = ctypes.c_double(opening_length)
+        Co = ctypes.c_double(coeff_orifice)
+        Cfw = ctypes.c_double(coeff_freeweir)
+        Csw = ctypes.c_double(coeff_subweir)
+
+        import pdb
+        pdb.set_trace()
+        errcode = self.SWMMlibobj.swmm_setNodeOpening(node_index, idx, oType,
+                                                      A, l, Co, Cfw, Csw)
+        self._error_check(errcode)
+
+    def getNodeOpeningParam(self, ID, opening_index, parameter):
+        """get a parameter from a given opening from a given node
+        """
+        node_index = self.getObjectIDIndex(tka.ObjectType.NODE.value, ID)
+        idx = ctypes.c_int(opening_index)
+        param = ctypes.c_int(parameter)
+        value = ctypes.c_double()
+        errcode = self.SWMMlibobj.swmm_getNodeOpeningParam(node_index, idx, param,
+                                                           ctypes.byref(value))
+        self._error_check(errcode)
+        return value.value
+
+    def getNodeOpeningFlow(self, ID, opening_index):
+        """get the inflow from a given opening from a given node
+        """
+        node_index = self.getObjectIDIndex(tka.ObjectType.NODE.value, ID)
+        idx = ctypes.c_int(opening_index)
+        value = ctypes.c_double()
+        errcode = self.SWMMlibobj.swmm_getNodeOpeningFlow(node_index, idx,
+                                                          ctypes.byref(value))
+        self._error_check(errcode)
+        return value.value
+
+    def getNodeOpeningType(self, ID, opening_index):
+        """get the inflow from a given opening from a given node
+        """
+        node_index = self.getObjectIDIndex(tka.ObjectType.NODE.value, ID)
+        idx = ctypes.c_int(opening_index)
+        value = ctypes.c_int()
+        errcode = self.SWMMlibobj.swmm_getNodeOpeningType(node_index, idx,
+                                                          ctypes.byref(value))
+        self._error_check(errcode)
+        return value.value
+
+    def getOpeningCouplingType(self, ID, opening_index):
+        """get the inflow from a given opening from a given node
+        """
+        node_index = self.getObjectIDIndex(tka.ObjectType.NODE.value, ID)
+        idx = ctypes.c_int(opening_index)
+        value = ctypes.c_int()
+        errcode = self.SWMMlibobj.swmm_getOpeningCouplingType(node_index, idx,
+                                                          ctypes.byref(value))
+        self._error_check(errcode)
+        return value.value
+
+    def getNodeIsCoupled(self, ID):
+        """get a node's coupling status
+        """
+        node_index = self.getObjectIDIndex(tka.ObjectType.NODE.value, ID)
+        iscoupled = ctypes.c_int()
+        errcode = self.SWMMlibobj.swmm_getNodeIsCoupled(node_index, ctypes.byref(iscoupled))
+        self._error_check(errcode)
+        return bool(iscoupled.value)
+
+    def getOpeningsNum(self, ID):
+        """get a node's number of openings
+        """
+        node_index = self.getObjectIDIndex(tka.ObjectType.NODE.value, ID)
+        num = ctypes.c_int()
+        errcode = self.SWMMlibobj.swmm_getOpeningsNum(node_index, ctypes.byref(num))
+        self._error_check(errcode)
+        return num.value
+
+    def getOpeningsIndices(self, ID):
+        """get indices of openings of a node
+        """
+        node_index = self.getObjectIDIndex(tka.ObjectType.NODE.value, ID)
+        # get the number of openings of the node
+        num = self.getOpeningsNum(ID)
+        # create a pointer to an array of the same size
+        arr = (ctypes.c_int * num)()
+        arr_ptr = ctypes.cast(arr, ctypes.POINTER(ctypes.c_int))
+        # call function
+        errcode = self.SWMMlibobj.swmm_getOpeningsIndices(node_index, num, arr_ptr)
+        self._error_check(errcode)
+        # convert arr to a list
+        return [arr_ptr[i] for i in range(num)]
+
+    def deleteNodeOpening(self, ID, opening_index):
+        """get a node's number of openings
+        """
+        node_index = self.getObjectIDIndex(tka.ObjectType.NODE.value, ID)
+        idx = ctypes.c_int(opening_index)
+        errcode = self.SWMMlibobj.swmm_deleteNodeOpening(node_index, idx)
         self._error_check(errcode)
 
 

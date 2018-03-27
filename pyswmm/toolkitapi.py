@@ -77,6 +77,9 @@ class NodeParams(Enum):
     surDepth = 2  # double
     pondedArea = 3  # double
     initDepth = 4  # double
+    surfaceArea = 5  # node surface area
+    couplingArea = 6  # overland model coupling area
+    overlandDepth = 7  # overland model water depth
 
 
 class NodeResults(Enum):
@@ -88,6 +91,24 @@ class NodeResults(Enum):
     newDepth = 5  # Current water depth
     newHead = 6  # Current water head
     newLatFlow = 7  # Current Lateral Inflow
+    overlandInflow = 8  # Current coupling Inflow
+
+
+class OpeningParams(Enum):
+    type = 0
+    area = 1
+    length = 2
+    orifice_coeff = 3
+    free_weir_coeff = 4
+    submerged_weir_coeff = 5
+
+
+class OverlandCouplingType(Enum):
+    no_coupling = 0
+    no_flow = 1
+    orifice = 2
+    free_weir = 3
+    submerged_weir = 4
 
 
 class NodeType(Enum):
