@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+ # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # Copyright (c) 2014 Bryant E. McDonnell
 #
@@ -9,7 +9,7 @@
 
 # Local imports
 from pyswmm.swmm5 import PYSWMMException
-from pyswmm.toolkitapi import ObjectType, SubcParams, SubcResults
+from pyswmm.toolkitapi import ObjectType, SubcParams, SubcPollut, SubcResults
 
 
 class Subcatchments(object):
@@ -134,7 +134,7 @@ class Subcatchment(object):
     >>> with Simulation('tests/data/TestModel1_weirSetting.inp') as sim:
     ...     s1 = Subcatchments(sim)["S1"]
     ...     print s1.rainfall
-    ...     for step in simulation:
+    ...     for step in sim:
     ...         print s1.rainfall
     ... 0.04
     """
@@ -556,6 +556,140 @@ class Subcatchment(object):
                                              SubcResults.newSnowDepth.value)
 
     @property
+    def buildup(self):
+        """
+        Get Pollutant Results for Surface Buildup on a Subcatchment.
+
+        If Simulation is not running this method will raise a warning and
+        return 0.
+
+        :return: Group of Subcatchment Surface Buildup Values.
+        :rtype: dict
+
+        Examples:
+
+        >>> from pyswmm import Simulation, Subcatchments
+        >>>
+        >>> with Simulation('tests/buildup-test.inp') as sim:
+        ...     s1 = Subcatchments(sim)["S1"]
+        ...     for step in sim:
+        ...         print(s1.buildup)
+        >>> {'test-pollutant': 8.0}
+        >>> {'test-pollutant': 8.0}
+        >>> {'test-pollutant': 7.998}
+        >>> {'test-pollutant': 7.991}
+        >>> {'test-pollutant': 7.981}
+        """
+        out_dict = {}
+        pollut_ids = self._model.getObjectIDList(ObjectType.POLLUT.value)
+        buildup_array = self._model.getSubcatchPollut(self._subcatchmentid,
+                                                      SubcPollut.buildup.value)
+
+        for ind in range(len(pollut_ids)):
+            out_dict[pollut_ids[ind]] = buildup_array[ind]
+
+        return out_dict
+
+    @property
+    def conc_ponded(self):
+        """
+        Get Pollutant Results for Current Concentration of Pollutant in Ponded
+        Water on a Subcatchment.
+
+        If Simulation is not running this method will raise a warning and
+        return 0.
+
+        :return: Group of Subcatchment Ponded Water Quality Values.
+        :rtype: dict
+
+        Examples:
+
+        >>> from pyswmm import Simulation, Subcatchments
+        >>>
+        >>> with Simulation('tests/buildup-test.inp') as sim:
+        ...     s1 = Subcatchments(sim)["S1"]
+        ...     for step in sim:
+        ...         print(s1.conc_ponded)
+        >>> {'test-pollut1': 0.0, 'test-pollut2': 0.0}
+        >>> {'test-pollut1': 0.0, 'test-pollut2': 0.0}
+        >>> {'test-pollut1': 0.0, 'test-pollut2': 0.0}
+        """
+        out_dict = {}
+        pollut_ids = self._model.getObjectIDList(ObjectType.POLLUT.value)
+        cPonded_array = self._model.getSubcatchPollut(
+            self._subcatchmentid, SubcPollut.concPonded.value)
+        for ind in range(len(pollut_ids)):
+            out_dict[pollut_ids[ind]] = cPonded_array[ind]
+
+        return out_dict
+
+    @property
+    def pollut_quality(self):
+        """
+        Get Current Pollutant Water Quality Results from Subcatchment Runoff.
+
+        If Simulation is not running this method will raise a warning and
+        return 0.
+
+        :return: Group of Subcatchment Runoff Pollutant Quality Values.
+        :rtype: dict
+
+        Examples:
+
+        >>> from pyswmm import Simulation, Subcatchments
+        >>>
+        >>> with Simulation('tests/buildup-test.inp') as sim:
+        ...     s1 = Subcatchments(sim)["S1"]
+        ...     for step in sim:
+        ...         print(s1.pollut_quality)
+        >>> {'TSS': 0.0, 'Lead': 0.0}
+        >>> {'TSS': 0.0, 'Lead': 0.0}
+        >>> {'TSS': 0.0, 'Lead': 0.0}
+        """
+        out_dict = {}
+        pollut_ids = self._model.getObjectIDList(ObjectType.POLLUT.value)
+        subcqual_array = self._model.getSubcatchPollut(self._subcatchmentid,
+                                                      SubcPollut.subcQual.value)
+
+        for ind in range(len(pollut_ids)):
+            out_dict[pollut_ids[ind]] = subcqual_array[ind]
+
+        return out_dict
+        
+    @property
+    def runoff_total_loading(self):
+        """
+        Get Total Pollutant Loading from Subcatchment Runoff.
+
+        If Simulation is not running this method will raise a warning and
+        return 0.
+
+        :return: Group of Subcatchment Runoff Pollutant Loading Values.
+        :rtype: dict
+
+        Examples:
+
+        >>> from pyswmm import Simulation, Subcatchments
+        >>>
+        >>> with Simulation('tests/buildup-test.inp') as sim:
+        ...     s1 = Subcatchments(sim)["S1"]
+        ...     for step in sim:
+        ...         print(s1.runoff_total_loading)
+        >>> {'TSS': 0.01, 'Lead': 0.001}
+        >>> {'TSS': 0.02, 'Lead': 0.002}
+        >>> {'TSS': 0.03, 'Lead': 0.003}
+        """
+        out_dict = {}
+        pollut_ids = self._model.getObjectIDList(ObjectType.POLLUT.value)
+        totalload_array = self._model.getSubcatchPollut(self._subcatchmentid,
+                                                      SubcPollut.subcTotalLoad.value)
+
+        for ind in range(len(pollut_ids)):
+            out_dict[pollut_ids[ind]] = totalload_array[ind]
+
+        return out_dict
+
+    @property
     def statistics(self):
         """
         Subcatchment Flow Stats. The stats returned are rolling/cumulative.
@@ -573,8 +707,6 @@ class Subcatchment(object):
         | runoff            |
         +-------------------+
         | peak_runoff_rate  |
-        +-------------------+
-        | pollutant_buildup |
         +-------------------+
 
         :return: Group of Stats
