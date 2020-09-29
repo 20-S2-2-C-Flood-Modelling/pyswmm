@@ -7,6 +7,8 @@
 # -----------------------------------------------------------------------------
 """Nodes module for the pythonic interface to SWMM5."""
 
+import itertools
+
 # Local imports
 from pyswmm.swmm5 import PYSWMMException
 from pyswmm.toolkitapi import NodeParams, NodeResults, NodePollut, NodeType, ObjectType
@@ -394,6 +396,7 @@ class Node(object):
         self._model.setNodeParam(self._nodeid, NodeParams.pondedArea.value,
                                  param)
 
+    @property
     def initial_depth(self):
         """
         Get/set node initial depth.

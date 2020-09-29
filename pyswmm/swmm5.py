@@ -54,6 +54,11 @@ class PYSWMMException(Exception):
         return self.message
 
 
+
+class Flow(ctypes.Structure):
+    _fields_ = [('id', ctypes.c_char_p),
+                ('flow', ctypes.c_double)]
+
 class PySWMM(object):
     """
     Wrapper class to lead SWMM DLL object.
@@ -125,7 +130,6 @@ class PySWMM(object):
         self.rptfile = rptfile
         self.binfile = binfile
 
-
         if swmm_lib_path is None:
             swmm_lib_path = DLL_SELECTION()
 
@@ -161,7 +165,9 @@ class PySWMM(object):
 
         :param int errcode: SWMM error code index
         """
+
         if errcode != 0:
+            print("Error code:",errcode)
             raise SWMMException(errcode, self._error_message(errcode))
 
     def swmmExec(self, inpfile=None, rptfile=None, binfile=None):
@@ -1476,7 +1482,6 @@ class PySWMM(object):
         self._error_check(errcode)
         return result.value
 
-
     def getNodePollut(self, ID, resultType):
         """
         Get water quality results from a Node.
@@ -2050,10 +2055,53 @@ class PySWMM(object):
         errcode = self.SWMMlibobj.swmm_setGagePrecip(index, val)
         self._error_check(errcode)
 
+
     ######################
     # coupling functions #
     ######################
 
+    def swmm_coupling_stride(self, advance_seconds):
+        """
+           WIP: coupling
+           Called by simulation.py coupling_step.
+           Since it iterates over nodes, it must be implemented in C
+           to avoid a circular import.
+           """
+        if not hasattr(self, 'curSimTime'):
+            self.curSimTime = 0.0
+
+        ctime = self.curSimTime
+
+        secPday = 3600.0 * 24.0
+        advanceDays = advance_seconds / secPday
+
+        eps = advanceDays * 0.00001
+
+        f = []
+        coupling_time = 0.0
+        num_nodes = self.getProjectSize(tka.ObjectType.NODE.value)
+        elapsed_time = ctypes.c_double()
+        _flows_type = (Flow * num_nodes)
+        self.SWMMlibobj.swmm_coupling_flows.argtypes = [_flows_type]
+        while self.curSimTime <= ctime + advanceDays - eps:
+            self.SWMMlibobj.swmm_step(ctypes.byref(elapsed_time))
+            if elapsed_time.value == 0:
+                return f
+            self.curSimTime = elapsed_time.value
+            # Coupling time, in seconds.
+            coupling_time = (self.curSimTime - ctime) * 3600.0 * 24.0
+            _flows = _flows_type()
+            self.SWMMlibobj.swmm_coupling_flows(_flows)
+            f.append((coupling_time, _flows))
+        # Integrate to get the volume change
+        volumes = dict()
+        for n in range(num_nodes):
+            volumes[f[0][1][n].id.decode("utf-8")] = 0.0
+        for step in range(len(f)):
+            for n in range(num_nodes):
+                volumes[f[step][1][n].id.decode("utf-8")] += f[step][1][n].flow * 0.0283168466 * f[step][0]
+        return volumes
+        
     def setNodeOpening(self, ID, opening_index, opening_type, opening_area,
                        opening_length, coeff_orifice, coeff_freeweir,
                        coeff_subweir):
@@ -2158,6 +2206,7 @@ class PySWMM(object):
         idx = ctypes.c_int(opening_index)
         errcode = self.SWMMlibobj.swmm_deleteNodeOpening(node_index, idx)
 
+        
 if __name__ == '__main__':
     test = PySWMM(
         inpfile=r"./tests/data/model_weir_setting.inp",

@@ -421,6 +421,18 @@ class Simulation(object):
         """
         self._model.swmmExec()
 
+    ###############################
+    # overland coupling functions #
+    ###############################
+    def coupling_step(self, advance_seconds = 1.0):
+        """
+           Returns a list of tuples of dictionaries.
+           The first item in the tuple is the time elapsed in that step.
+           Each dictionary key is a node id.
+           The corresponding dict value is the flow in that time
+           through that node."""
+        return self._model.swmm_coupling_stride(advance_seconds)
+
     @property
     def engine_version(self):
         """
