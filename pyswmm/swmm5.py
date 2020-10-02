@@ -2094,13 +2094,21 @@ class PySWMM(object):
             self.SWMMlibobj.swmm_coupling_flows(_flows)
             f.append((coupling_time, _flows))
         # Integrate to get the volume change
-        volumes = dict()
-        for n in range(num_nodes):
-            volumes[f[0][1][n].id.decode("utf-8")] = 0.0
+#        volumes = dict()
+#        for n in range(num_nodes):
+#            volumes[f[0][1][n].id.decode("utf-8")] = 0.0
+#        for step in range(len(f)):
+#            for n in range(num_nodes):
+#                volumes[f[step][1][n].id.decode("utf-8")] += f[step][1][n].flow * 0.0283168466 * f[step][0]
+#                print("f[step][0]",f[step][0])
+        new_f = []
         for step in range(len(f)):
+            time = f[step][0]
+            fs = dict()
             for n in range(num_nodes):
-                volumes[f[step][1][n].id.decode("utf-8")] += f[step][1][n].flow * 0.0283168466 * f[step][0]
-        return volumes
+                fs[f[step][1][n].id.decode("utf-8")] = f[step][1][n].flow
+            new_f.append((time, fs))
+        return new_f
         
     def setNodeOpening(self, ID, opening_index, opening_type, opening_area,
                        opening_length, coeff_orifice, coeff_freeweir,
