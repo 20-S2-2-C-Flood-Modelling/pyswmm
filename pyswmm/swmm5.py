@@ -2093,7 +2093,7 @@ class PySWMM(object):
             self.SWMMlibobj.swmm_coupling_flows(_flows)
             fs = dict()            
             for n in range(num_nodes):
-                fs[_flows[n].id.decode("utf-8")] = _flows[n].flow
+                fs[_flows[n].id.decode("utf-8")] = _flows[n].flow * 0.0283168466
             f.append((coupling_time, fs))
             #f.append((coupling_time, _flows))
         # Integrate to get the volume change
