@@ -2078,21 +2078,24 @@ class PySWMM(object):
         eps = advanceDays * 0.00001
 
         f = []
-        coupling_time = 0.0
         num_nodes = self.getProjectSize(tka.ObjectType.NODE.value)
-        elapsed_time = ctypes.c_double()
         _flows_type = (Flow * num_nodes)
+        elapsed_time = ctypes.c_double()
         self.SWMMlibobj.swmm_coupling_flows.argtypes = [_flows_type]
         while self.curSimTime <= ctime + advanceDays - eps:
             self.SWMMlibobj.swmm_step(ctypes.byref(elapsed_time))
             if elapsed_time.value == 0:
                 return f
-            self.curSimTime = elapsed_time.value
             # Coupling time, in seconds.
-            coupling_time = (self.curSimTime - ctime) * 3600.0 * 24.0
+            coupling_time = (elapsed_time.value - self.curSimTime) * 3600.0 * 24.0
+            self.curSimTime = elapsed_time.value
             _flows = _flows_type()
             self.SWMMlibobj.swmm_coupling_flows(_flows)
-            f.append((coupling_time, _flows))
+            fs = dict()            
+            for n in range(num_nodes):
+                fs[_flows[n].id.decode("utf-8")] = _flows[n].flow
+            f.append((coupling_time, fs))
+            #f.append((coupling_time, _flows))
         # Integrate to get the volume change
 #        volumes = dict()
 #        for n in range(num_nodes):
@@ -2101,14 +2104,7 @@ class PySWMM(object):
 #            for n in range(num_nodes):
 #                volumes[f[step][1][n].id.decode("utf-8")] += f[step][1][n].flow * 0.0283168466 * f[step][0]
 #                print("f[step][0]",f[step][0])
-        new_f = []
-        for step in range(len(f)):
-            time = f[step][0]
-            fs = dict()
-            for n in range(num_nodes):
-                fs[f[step][1][n].id.decode("utf-8")] = f[step][1][n].flow
-            new_f.append((time, fs))
-        return new_f
+        return f
         
     def setNodeOpening(self, ID, opening_index, opening_type, opening_area,
                        opening_length, coeff_orifice, coeff_freeweir,
